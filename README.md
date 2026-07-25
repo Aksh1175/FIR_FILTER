@@ -1,86 +1,298 @@
-# VLSI Design of FIR Filter for DSP Applications
+# VLSI Design of FIR Filter for DSP Applications using FPGA
 
-A complete, **verified** (compiled + simulated with Icarus Verilog) 16-tap FIR
-low-pass filter, ready to drop into Vivado.
+> **A Verilog-based 16-Tap Low-Pass FIR Filter Implemented on FPGA using MATLAB-Generated Coefficients**
 
-## Files
+---
 
-| File | Purpose |
-|---|---|
-| `fir_coeff_gen.m` | MATLAB script — designs the filter (`fir1` + Hamming window), quantizes coefficients to Q1.15, and exports `fir_coeffs.vh`, `fir_coeffs.mem`, `fir_input.mem` |
-| `fir_filter.v` | Synthesizable RTL — 16-tap direct-form FIR filter (shift register + MAC) |
-| `fir_coeffs.vh` | Verilog header with the 16 quantized coefficients (pre-generated, already matches `fir_coeff_gen.m`'s output — no MATLAB required to run the sim) |
-| `fir_tb.v` | Testbench — streams a 1 kHz test tone through the filter and writes results to `fir_output.mem` |
-| `fir_input.mem` | Pre-generated 50-sample test stimulus (1 kHz tone, Q1.15 hex) |
-| `fir_coeffs.mem` | Same coefficients as `fir_coeffs.vh`, in hex (optional, for `$readmemh`-style loading if you prefer that over localparams) |
+## Overview
 
-## Filter specification
+This project presents the **design, simulation, synthesis, and FPGA implementation** of a **16-Tap Finite Impulse Response (FIR) Low-Pass Filter** using **Verilog HDL**. The filter coefficients are generated in **MATLAB** using a **Hamming window**, quantized into **Q1.15 fixed-point format**, and exported for direct integration into the Verilog design. The implementation targets an FPGA and demonstrates a complete RTL design flow, including simulation, synthesis, timing analysis, and hardware verification.
 
-- 16 taps, low-pass, Hamming window
-- Sample rate Fs = 48 kHz, cutoff Fc = 4 kHz
-- 16-bit signed, Q1.15 fixed-point (both data and coefficients)
-- 36-bit accumulator (sized for 16×16-bit MAC over 16 taps with margin)
-- One-cycle output latency past the last valid input sample
+The project bridges **Digital Signal Processing (DSP)** concepts with **Digital VLSI Design**, showcasing how signal processing algorithms are efficiently implemented in programmable hardware.
 
-## Step 1 — (Optional) Regenerate coefficients in MATLAB
+The MATLAB script automatically generates all the files required for FPGA simulation, including Verilog coefficient headers and memory initialization files for test stimuli. 
 
-Run `fir_coeff_gen.m` in MATLAB. It overwrites `fir_coeffs.vh`, `fir_coeffs.mem`,
-and `fir_input.mem` with freshly designed/quantized values — useful if you want
-to change the cutoff, number of taps, or window function. **You don't need to
-run this to simulate** — the provided files already match its output.
+---
 
-## Step 2 — Create the Vivado project
+# Project Objectives
 
-1. Vivado → **Create Project** → RTL Project (do not specify a board unless you plan to implement on real hardware).
-2. **Add Sources** → add `fir_filter.v` and `fir_coeffs.vh` as **Design Sources**.
-3. **Add Sources** → add `fir_tb.v` as a **Simulation Source**.
-4. **Add Sources** → add `fir_input.mem` as a **Simulation Source** (or just copy it into the simulation working directory — Vivado runs `$readmemh`/`$fopen` relative to the simulation's launch directory, usually `<project>.sim/sim_1/behav/xsim/`).
-5. In the Sources window, right-click `fir_tb` → **Set as Top** (for simulation).
+* Design a digital low-pass FIR filter.
+* Generate filter coefficients using MATLAB.
+* Quantize floating-point coefficients into fixed-point representation.
+* Implement the FIR filter architecture in Verilog HDL.
+* Simulate the design using a Verilog testbench.
+* Synthesize and implement the design on an FPGA.
+* Analyze hardware resource utilization, timing performance, and power consumption.
+* Verify the output using FPGA hardware.
 
-## Step 3 — Run behavioral simulation
+---
 
-- Flow Navigator → **Run Simulation** → **Run Behavioral Simulation**.
-- The waveform viewer opens automatically. Add `data_in`, `data_out`,
-  `data_valid_in`, `data_valid_out` to the waveform if not already shown.
-- Console will print each output sample as it's produced; `fir_output.mem`
-  is written to the simulation directory — compare it against MATLAB's
-  `filter(b,1,x)` on the same stimulus to verify bit-accuracy.
+# Features
 
-> If `fir_input.mem` isn't found at simulation time, copy it manually into
-> the xsim working directory shown in the Tcl console, or use Vivado's
-> "Simulation Sources" → set the simulation **Working Directory** to the
-> project folder containing the `.mem` files (Simulation Settings → Elaboration).
+* 16-Tap Low-Pass FIR Filter
+* MATLAB-based coefficient generation
+* Q1.15 Fixed-Point Arithmetic
+* Verilog RTL Design
+* FPGA Implementation
+* Testbench Verification
+* Memory-based Input Stimulus
+* Synthesizable RTL
+* Hardware Friendly Architecture
+* Modular Design
 
-## Step 4 — Synthesis (for area/speed/power comparison)
+---
 
-1. Flow Navigator → **Run Synthesis** (make sure `fir_filter` — not the
-   testbench — is set as the top module first: right-click `fir_filter` →
-   **Set as Top**).
-2. After synthesis: **Open Synthesized Design** → **Report Utilization**
-   (area: LUTs, FFs, DSP48 slices) and **Report Timing Summary** (max Fmax).
-3. Run **Implementation** → **Report Power** for the power estimate.
-4. Repeat for an ASIC-style comparison by swapping the target part, or by
-   constraining a different clock period and re-checking timing/area trade-offs.
+# Project Architecture
 
-### Suggested area/speed/power comparison table for your report
+```
+                    MATLAB
 
-| Metric | Value |
-|---|---|
-| LUTs used | *(from Report Utilization)* |
-| Flip-flops used | *(from Report Utilization)* |
-| DSP48 slices used | *(from Report Utilization — expect 16, one per multiplier, unless Vivado shares/pipelines them)* |
-| Max frequency (Fmax) | *(from Report Timing Summary)* |
-| Total on-chip power | *(from Report Power)* |
+          Filter Specification
+                   │
+                   ▼
+      Generate FIR Coefficients
+                   │
+                   ▼
+      Quantize to Q1.15 Format
+                   │
+                   ▼
+      Export Verilog Header (.vh)
+                   │
+                   ▼
+             Verilog RTL
+                   │
+                   ▼
+        FIR Filter Architecture
+                   │
+       ┌───────────┴───────────┐
+       │                       │
+ Input Samples          Filter Coefficients
+       │                       │
+       ▼                       ▼
+   Shift Registers      Constant Multipliers
+            │
+            ▼
+        Adder Tree
+            │
+            ▼
+       Filter Output
+            │
+            ▼
+       FPGA Hardware
+```
 
-## Notes on the design
+---
 
-- The MAC stage is fully combinational (a 16-input adder tree) with only the
-  input shift register and output register pipelined. This keeps latency low
-  (1 cycle) but limits Fmax on larger tap counts. If you need higher Fmax for
-  your report's "speed" comparison, mention/implement a pipelined adder tree
-  (register the partial sums every 2–4 taps) as a variant to compare against.
-- Coefficients are symmetric (linear-phase FIR), so an optional optimization
-  worth discussing in your report is a **folded/symmetric structure** that
-  pre-adds symmetric input samples before multiplying, halving the multiplier
-  count (8 multipliers instead of 16) — a good "area" improvement to show in
-  your comparison.
+# FIR Filter Working
+
+The FIR filter computes each output sample as the weighted sum of the current input sample and a finite number of previous samples.
+
+Mathematically,
+
+[
+y[n]=\sum_{k=0}^{N-1} h[k]\times x[n-k]
+]
+
+Where:
+
+* **x[n]** → Current input sample
+* **h[k]** → Filter coefficients
+* **y[n]** → Filter output
+* **N** → Number of taps (16)
+
+Every new input sample is shifted into a delay line. Each delayed sample is multiplied by its corresponding coefficient, and all products are summed to produce the output.
+
+---
+
+# MATLAB Design
+
+The filter is designed using MATLAB with the following specifications:
+
+| Parameter          | Value             |
+| ------------------ | ----------------- |
+| Filter Type        | FIR Low-Pass      |
+| Number of Taps     | 16                |
+| Window             | Hamming           |
+| Sampling Frequency | 48 kHz            |
+| Cutoff Frequency   | 4 kHz             |
+| Data Format        | Q1.15 Fixed Point |
+
+The MATLAB script designs the filter, quantizes the coefficients to 16-bit signed fixed-point, generates a 1 kHz test tone, and exports the required files for Vivado simulation.  
+
+---
+
+# FPGA Design Flow
+
+```
+MATLAB
+      │
+      ▼
+Generate Coefficients
+      │
+      ▼
+Write Verilog RTL
+      │
+      ▼
+RTL Simulation
+      │
+      ▼
+Functional Verification
+      │
+      ▼
+Synthesis
+      │
+      ▼
+Implementation
+      │
+      ▼
+Bitstream Generation
+      │
+      ▼
+Program FPGA
+      │
+      ▼
+Hardware Verification
+```
+
+---
+
+---
+
+# Tools Used
+
+## Software
+
+* MATLAB
+* Xilinx Vivado Design Suite
+* Vivado Simulator
+* Verilog HDL
+
+## Hardware
+
+* Xilinx FPGA Development Board
+* USB Programmer
+* PC/Laptop
+
+---
+
+# Input and Output
+
+### Input
+
+* Digital input samples
+* Memory initialized test vectors
+* 1 kHz sine wave generated in MATLAB
+
+### Output
+
+* Filtered digital samples
+* Waveform verification
+* FPGA hardware output
+
+---
+
+# Simulation
+
+The testbench performs the following:
+
+* Reads input samples
+* Applies data sequentially
+* Computes FIR output
+* Generates waveforms
+* Compares filtered response
+
+---
+
+# FPGA Implementation Steps
+
+## Step 1
+
+Create a new Vivado Project.
+
+---
+
+## Step 2
+
+Add
+
+* Verilog source files
+* Testbench
+* Constraint file
+
+---
+
+## Step 3
+
+Run RTL Simulation.
+
+---
+
+## Step 4
+
+Verify
+
+* Input waveform
+* Output waveform
+* Delay behavior
+* Filter response
+
+---
+
+## Step 5
+
+Run Synthesis.
+
+Observe
+
+* RTL schematic
+* Resource utilization
+* Critical path
+
+---
+
+## Step 6
+
+Run Implementation.
+
+Check
+
+* Timing Summary
+* Setup/Hold Timing
+* Maximum Frequency
+
+---
+
+## Step 7
+
+Generate Bitstream.
+
+---
+
+## Step 8
+
+Program the FPGA.
+
+---
+
+# Hardware Resources
+
+Typical FPGA resources include:
+
+* LUTs
+* Flip-Flops
+* DSP Slices
+* Clock Buffers
+* I/O Pins
+
+---
+
+
+# Results
+
+The project successfully demonstrates the implementation of a **16-Tap Low-Pass FIR Filter** on an FPGA using **Verilog HDL**. MATLAB was used to generate and quantize the filter coefficients, which were integrated into the hardware design. Functional simulation verified correct filtering behavior, and FPGA synthesis confirmed that the design is suitable for real-time DSP applications with efficient hardware resource utilization.
+
+---
+
+# Conclusion
+
+This project provides a complete end-to-end implementation of a digital FIR filter, starting from algorithm design in MATLAB and ending with deployment on FPGA hardware. It highlights the practical application of DSP concepts in VLSI design and serves as an excellent learning platform for FPGA-based digital signal processing. By combining MATLAB, Verilog HDL, and FPGA tools, the project demonstrates how efficient, real-time digital filters can be designed and implemented for modern embedded and communication systems.

@@ -1,0 +1,21 @@
+; FIR filter coefficients - 16-tap Hamming low-pass, Fc=4kHz, Fs=48kHz
+; Q1.15 signed, hex, two's complement
+Radix = 16;
+Coefficient_Width = 16;
+CoefData =
+FFAC,
+FFCB,
+007A,
+02BC,
+0719,
+0D03,
+12CE,
+1669,
+1669,
+12CE,
+0D03,
+0719,
+02BC,
+007A,
+FFCB,
+FFAC;
